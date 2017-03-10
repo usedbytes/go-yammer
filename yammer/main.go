@@ -77,13 +77,13 @@ func NewRateLimitedClient(nreqs int, period time.Duration) *RateLimitedClient {
 type Client struct {
 	baseURL     string
 	bearerToken string
-	connection  *http.Client
+	connection  *RateLimitedClient
 }
 
 func New(bearerToken string) *Client {
 	return &Client{
 		baseURL:     "https://www.yammer.com",
 		bearerToken: bearerToken,
-		connection:  &http.Client{},
+		connection:  NewRateLimitedClient(10, 30 * time.Second),
 	}
 }
