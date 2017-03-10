@@ -7,11 +7,48 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/bmorton/go-yammer/schema"
 )
 
+type ThreadingMode string
+const (
+	ThreadExtended = "extended"
+	ThreadTopOnly =  "true"
+)
+
+type FeedParams struct {
+	Older_than, Newer_than int
+	Threaded ThreadingMode
+	Limit int
+}
+
+func (p *FeedParams) Values() url.Values {
+	v := url.Values{}
+	if p.Older_than != 0 {
+		v.Add("older_than", strconv.Itoa(p.Older_than))
+	}
+	if p.Newer_than != 0 {
+		v.Add("newer_than", strconv.Itoa(p.Newer_than))
+	}
+	if p.Threaded != "" {
+		v.Add("threaded", string(p.Threaded))
+	}
+	if p.Limit != 0 {
+		v.Add("limit", strconv.Itoa(p.Limit))
+	}
+	return v
+}
+
 func (c *Client) GroupFeed(id int) (*schema.MessageFeed, error) {
+	var parms FeedParams
+
+	return c.GroupFeedParams(id, parms)
+}
+
+func (c *Client) GroupFeedParams(id int, parms FeedParams) (*schema.MessageFeed, error) {
 	url := fmt.Sprintf("%s/api/v1/messages/in_group/%d.json", c.baseURL, id)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -19,6 +56,15 @@ func (c *Client) GroupFeed(id int) (*schema.MessageFeed, error) {
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.bearerToken))
+
+	args := req.URL.Query()
+	extra_args := parms.Values()
+	for k, vals := range extra_args {
+		for _, v := range vals {
+			args.Add(k, v)
+		}
+	}
+	req.URL.RawQuery = args.Encode()
 
 	resp, err := c.connection.Do(req)
 	if err != nil {
