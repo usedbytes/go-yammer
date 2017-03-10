@@ -1,6 +1,7 @@
 package yammer
 
 import (
+	"errors"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,11 @@ func (c *Client) GroupFeed(id int) (*schema.MessageFeed, error) {
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return &schema.MessageFeed{}, errors.New(resp.Status)
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return &schema.MessageFeed{}, err
@@ -56,6 +62,11 @@ func (c *Client) InboxFeed() (*schema.MessageFeed, error) {
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return &schema.MessageFeed{}, errors.New(resp.Status)
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return &schema.MessageFeed{}, err
