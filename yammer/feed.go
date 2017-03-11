@@ -92,6 +92,39 @@ func (c *Client) GroupFeedParams(id int, parms FeedParams) (*schema.MessageFeed,
 	return &feed, nil
 }
 
+func (c *Client) GroupFeedSince(id int, newerThan int) (*schema.MessageFeed, error) {
+	var combined *schema.MessageFeed
+
+	if newerThan == 0 {
+		return &schema.MessageFeed{}, nil
+	}
+
+	params := FeedParams{
+		Newer_than: newerThan,
+	}
+
+	for {
+		feed, err := c.GroupFeedParams(id, params)
+		if err != nil {
+			return combined, err
+		}
+		if len(feed.Messages) == 0 {
+			return combined, err
+		}
+
+		if combined != nil {
+			combined.Messages = append(combined.Messages, feed.Messages...)
+			combined.References = append(combined.References, feed.References...)
+			/* TODO: Meta/ */
+		} else {
+			combined = feed
+		}
+
+		params.Older_than = feed.Messages[len(feed.Messages)-1].Id
+	}
+}
+
+
 func (c *Client) InboxFeed() (*schema.MessageFeed, error) {
 	url := fmt.Sprintf("%s/api/v1/messages/inbox.json", c.baseURL)
 	req, err := http.NewRequest("GET", url, nil)
